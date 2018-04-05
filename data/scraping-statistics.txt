@@ -1,0 +1,53 @@
+2017 Stats:
+Scraped recruits: 4262
+Recruits that had a college on the site: 3298
+Recruits with a known college: 2542
+
+2016 Stats:
+Scraped recruits: 3982
+Recruits that had a college on the site: 3192
+Recruits with a known college: 2435
+
+2015 Stats:
+Scraped recruits: 3554
+Recruits that had a college on the site: 2992
+Recruits with a known college: 2449
+
+2014 Stats:
+Scraped recruits: 3813
+Recruits that had a college on the site: 2971
+Recruits with a known college: 2466
+
+2013 Stats:
+Scraped recruits: 3476
+Recruits that had a college on the site: 2753
+Recruits with a known college: 2372
+
+2012 Stats:
+Scraped recruits: 3102
+Recruits that had a college on the site: 2537
+Recruits with a known college: 2383
+
+2011 Stats:
+Scraped recruits: 2679
+Recruits that had a hometown on the site: 2673
+Recruits that had a college on the site: 2421
+Recruits with a known college: 2359
+
+2010 Stats:
+Scraped recruits: 2461
+Recruits that had a hometown on the site: 2461
+Recruits that had a college on the site: 2445
+Recruits with a known college: 2426
+
+2009 Stats:
+Scraped recruits: 2291
+Recruits that had a hometown on the site: 2291
+Recruits that had a college on the site: 2279
+Recruits with a known college: 2278
+
+2008 Stats:
+Scraped recruits: 2168
+Recruits that had a hometown on the site: 2167
+Recruits that had a college on the site: 2155
+Recruits with a known college: 2154

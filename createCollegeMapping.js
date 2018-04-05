@@ -91,6 +91,8 @@ const colleges = _.chain(collegeFeatureCollection.features)
       feature.properties.college = 'Boston College'
     } else if (officialName === 'United States Air Force Academy') {
       feature.properties.college = 'Air Force'
+    } else if (officialName === 'The University of Southern Mississippi') {
+      feature.properties.college = 'Southern Miss'
     } else if (officialName.match(/The University of (.+)/)) {
       feature.properties.college = /The University of (.+)/.exec(officialName)[1]
     } else if (officialName.match(/University of (.+)-.*/)) {
