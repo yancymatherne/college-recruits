@@ -1,0 +1,29 @@
+{
+  "name": "college-recruits",
+  "version": "1.0.0",
+  "description": "Visualize migration patterns of college football recruits.",
+  "main": "index.js",
+  "scripts": {
+    "scrape": "node scrape.js",
+    "create-mapping": "node createCollegeMapping.js",
+    "lint": "eslint ."
+  },
+  "author": "Yancy Matherne",
+  "license": "ISC",
+  "dependencies": {
+    "@turf/turf": "^5.1.6",
+    "es6-promise": "^4.2.4",
+    "isomorphic-fetch": "^2.2.1",
+    "jquery": "^3.3.1",
+    "jsdom": "^11.6.2",
+    "lodash": "^4.17.5"
+  },
+  "devDependencies": {
+    "eslint": "^4.8.0",
+    "eslint-config-standard": "^10.2.1",
+    "eslint-plugin-import": "^2.7.0",
+    "eslint-plugin-node": "^5.2.0",
+    "eslint-plugin-promise": "^3.5.0",
+    "eslint-plugin-standard": "^3.0.1"
+  }
+}

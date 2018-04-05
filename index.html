@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8"/>
+<title>Migration Patterns of the College Football Recruit</title>
+<script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
+<link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+<link rel="stylesheet" href="https://openlayers.org/en/v4.6.5/css/ol.css" type="text/css">
+<script src="https://openlayers.org/en/v4.6.5/build/ol.js"></script>
+<script src="https://npmcdn.com/@turf/turf/turf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/lodash@4.17.5/lodash.min.js"></script>
+<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
+
+<style>
+#controls {
+  top: .5em;
+  right: .5em;
+  width: 200px;
+}
+.map-container {
+  height: 100%;
+  width: 100%;
+}
+.map {
+  position: fixed;
+  height: 100%;
+  width: 100%;
+}
+#title {
+  position: fixed;
+  top: .2em;
+  left: 1.25em;
+  padding: .2em;
+  margin: 0;
+}
+.range {
+  margin: 0px 7px;
+}
+#image-container {
+  display: none;
+}
+
+.map-container .ol-control {
+  background-color: rgba(255,255,255,.8);
+}
+
+.group-by {
+  top: 60px;
+  left: .5em;
+  position: fixed;
+}
+
+</style>
+</head>
+<body>
+  <div class="map-container">
+    <div id="map" class="map"></div>
+
+    <h2 id="title" class="ol-unselectable ol-control ol-uncollapsible">
+      Migration Patterns of the College Football Recruit
+    </h2>
+
+    <div class="group-by ol-unselectable ol-control ol-uncollapsible">
+      <table id="group-by-table" class="table table-condensed">
+        <thead>
+          <tr>
+            <th>
+              <select id="group-by" name="group-by" class="form-control">
+                <option value="college">College</option>
+                <option value="college_conference">Conference</option>
+                <option value="homestate">Home State</option>
+                <option value="hometown">Home Town</option>
+                <option value="position">Position</option>
+              </select>
+            </th>
+            <th>#</th>
+            <th>Avg Rank</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <div id="controls" class="ol-unselectable ol-control ol-uncollapsible">
+      <div>Viewing <span id="numberOfRecruits">0</span> Recruits</div>
+      <form>
+        <div class="form-group">
+          <label for="year">Year</label>
+          <select id="year" name="year" class="form-control input-sm">
+            <option value="2017">2017</option>
+            <option value="2016">2016</option>
+            <option value="2015">2015</option>
+            <option value="2014">2014</option>
+            <option value="2013">2013</option>
+            <option value="2012">2012</option>
+            <option value="2011">2011</option>
+            <option value="2010">2010</option>
+            <option value="2009">2009</option>
+            <option value="2008">2008</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="college">College</label>
+          <select id="college" name="college" class="env-control form-control input-sm"></select>
+        </div>
+        <div class="form-group">
+          <label for="college_conference">Conference</label>
+          <select id="college_conference" name="college_conference" class="env-control form-control input-sm"></select>
+        </div>
+        <div class="form-group">
+          <label for="homestate">Home State</label>
+          <select id="homestate" name="homestate" class="env-control form-control input-sm"></select>
+        </div>
+        <div class="form-group">
+          <label for="hometown">Home Town</label>
+          <select id="hometown" name="hometown" class="env-control form-control input-sm"></select>
+        </div>
+        <div class="form-group">
+          <label for="position">Position</label>
+          <select id="position" name="position" class="env-control form-control input-sm"></select>
+        </div>
+        <div class="form-group">
+          <label for="rank_primary">Rank <small id="rank_primary-amount"></small></label>
+          <div id="rank_primary" class="range"></div>
+        </div>
+        <div class="form-group">
+          <label for="rating_score">Rating Score <small id="rating_score-amount"></small></label>
+          <div id="rating_score" class="range"></div>
+        </div>
+        <div class="form-group">
+          <label for="weight">Weight <small id="weight-amount"></small></label>
+          <div id="weight" class="range"></div>
+          <label for="weight-include">Include Unreported?</label>
+          <input id="weight-include" name="weight-include" type="checkbox" checked="checked" class="env-control" />
+        </div>
+        <div class="form-group">
+          <label for="distance">Distance <small id="distance-amount"></small></label>
+          <div id="distance" class="range"></div>
+        </div>
+      </form>
+    </div>
+</div>
+<div id="image-container"></div>
+<script>
+var segmentLength = 20;
+var pointsPerArc = 100;
+
+var animationStartTime = new Date().getTime();
+var geojson = new ol.format.GeoJSON();
+
+// Source for the recruits.
+var recruitSource = new ol.source.Vector({});
+
+// Layer for the static lines.
+var lineLayer = new ol.layer.Vector({
+  source: recruitSource,
+  style: function (feature, resolution) {
+    if (feature.get('visible')) {
+      return [new ol.style.Style({
+        // geometry: feature.get('migrationLineGeometry'),
+        stroke: new ol.style.Stroke({
+          color: getColor(feature.get('rating_score')),
+          width: getLineWidth(resolution)
+        })
+      })];
+    } else {
+      return null;
+    }
+  }
+});
+
+// Layer for the moving particles.
+var recruitLayer = new ol.layer.Vector({
+  source: recruitSource,
+  style: null
+});
+// var heatmapLayer = ol.layer.Heatmap({})
+recruitLayer.on('postcompose', animate);
+
+var map = new ol.Map({
+  layers: [
+    new ol.layer.Tile({
+      opacity: .4,
+      // source: new ol.source.XYZ({ url: 'https://cdn.ventusky.com/tiles/land/{z}/{x}/{y}.png' })
+      source: new ol.source.XYZ({ url: 'http://api.boundlessgeo.io/v1/basemaps/mapbox/light/{z}/{x}/{y}.png?apikey=MTIzND9UaGF0cyB0aGUga2luZCBvZiB0aGluZyBhbiBpZGlvdCB3b3VsZCBoYXZlIG9uIGhpcyBsdWdnYWdlIQ' })
+      // source: new ol.source.Stamen({ layer: 'toner-lite' })
+    }),
+    lineLayer,
+    recruitLayer
+  ],
+  target: 'map',
+  view: new ol.View({
+    center: [-10522334.378386898, 4651144.122662435],
+    zoom: 5
+  })
+});
+
+
+function loadYear(year) {
+  fetch(`data/${year}-recruits.json`)
+    .then((response) => response.json())
+    .then((featureCollection) => {
+      // Read the recruits
+      var features = geojson.readFeatures(featureCollection);
+
+      // Configure the dropdown options.
+      populateOptions(featureCollection, 'hometown');
+      populateOptions(featureCollection, 'homestate');
+      populateOptions(featureCollection, 'position');
+
+      // Create the lines from hometown to college.
+      _.chain(features)
+        .each((feature) => {
+          var hometown = feature.getGeometry().clone().transform('EPSG:3857', 'EPSG:4326').getCoordinates();
+          var college = geojson.readGeometry(feature.get('college_geometry')).transform('EPSG:3857', 'EPSG:4326').getCoordinates();
+          // Create the great circl arc from the hometown to the college.
+          var migrationLine = turf.greatCircle(hometown, college, { npoints: pointsPerArc });
+          // Compute the length of the line. Use this for calculating how far along the animated segment should be.
+          var length = turf.length(migrationLine);
+          // Store the turf version of the line to be used in the animation.
+          feature.set('migration', migrationLine);
+          // Store the ol map version of the line to be used by the static line layer.
+          feature.set('migrationLineGeometry', geojson.readGeometry(migrationLine.geometry).transform('EPSG:4326', 'EPSG:3857'));
+          feature.setGeometryName('migrationLineGeometry');
+          // Store the length of the line.
+          feature.set('migrationLength', length);
+          // Initialize the first value for the animation segment end.
+          feature.set('migrationSegmentEnd', segmentLength);
+          // Make all the recruits visible by default.
+          feature.set('visible', true);
+        })
+        .tap((featureArray) => {
+          $('#numberOfRecruits').text(featureArray.length);
+        })
+        .value();
+
+      recruitSource.clear(true);
+      recruitSource.addFeatures(features);
+
+      updateFilter();
+    });
+}
+
+// Load year 2017 data on page load.
+loadYear(2017);
+
+// Handler for changing the year.
+$('#year').change(function () {
+  loadYear($(this).val());
+});
+
+// Load the colleges. We only have one set so just load it on page load.
+fetch(`data/colleges-with-mappings.json`)
+  .then((response) => response.json())
+  .then((featureCollection) => {
+    // Configure the dropdown options.
+    populateOptions(featureCollection, 'college', 'college');
+    populateOptions(featureCollection, 'CONFERENCE', 'college_conference');
+
+    // Read the colleges
+    const features = (new ol.format.GeoJSON()).readFeatures(featureCollection);
+
+    const defaultStyle = getDefaultStyle();
+
+    _.each(features, (feature) => {
+      const imageUrl = feature.get('college_image');
+      if (imageUrl) {
+        // OpenLayers didn't like so many images loaded directly into the styles. Had this weird blinking effect.
+        // First load the images into the DOM. Then use the IMG element in the style.
+        const image = $(`<img college="${feature.get('college')}" src="${imageUrl}">`);
+        $('#image-container').append(image);
+        feature.setStyle(new ol.style.Style({
+            image: new ol.style.Icon({
+              crossOrigin: 'anonymous',
+              // src: feature.get('college_image'),
+              scale: .5,
+              size: [50, 50],
+              img: image.get(0),
+              imgSize: [50, 50]
+            })
+          }));
+      } else {
+        feature.setStyle(defaultStyle);
+      }
+    });
+
+    const layer = new ol.layer.Vector({
+      source: new ol.source.Vector({ features: features })
+    });
+    map.addLayer(layer);
+  });
+
+// Color of the static line based on the recruit's rating.
+function getColor(value) {
+  // Color the recruits by rating. Higher rated players are red, lower rated players are blue.
+  // Use a polynomial function to create a color ramp where the red color band matches to a smaller segment of ratings
+  // than the blue.
+  // y = 8.5714x2 - 11.286x + 3.7143
+  const ratio = 8.5714 * value * value - 11.286 * value + 3.7143
+  const lowColor = [0, 0, 255, .2]
+  const highColor = [255, 0, 0, .4]
+  const r = lowColor[0] * (1 - ratio) + highColor[0] * ratio
+  const g = lowColor[1] * (1 - ratio) + highColor[1] * ratio
+  const b = lowColor[2] * (1 - ratio) + highColor[2] * ratio
+  const a = lowColor[3] * (1 - ratio) + highColor[3] * ratio
+  return [r, g, b, a]
+}
+
+// Width of the static lines based on the number of lines on the screen.
+function getLineWidth(resolution) {
+  // y = -0.387ln(x) + 3.4819
+  const numberOfRecruits = _.toNumber($('#numberOfRecruits').text());
+  return -0.387 * Math.log(numberOfRecruits) + 3.4819;
+}
+
+// Default style for a college without a logo.
+function getDefaultStyle() {
+  var fill = new ol.style.Fill({
+    color: 'rgba(255,255,255,0.4)'
+  });
+  var stroke = new ol.style.Stroke({
+    color: '#3399CC',
+    width: 1.25
+  });
+
+  return new ol.style.Style({
+    image: new ol.style.Circle({
+      fill: fill,
+      stroke: stroke,
+      radius: 5
+    }),
+    fill: fill,
+    stroke: stroke
+  });
+}
+
+function populateOptions(collection, attribute, selectId) {
+  // Populate attribute select.
+  const options = _.chain(collection.features)
+    .map((feature) => feature.properties[attribute])
+    .uniq()
+    .sortBy()
+    .map((value) => {
+      return `<option value="${value}">${value}</option>`;
+    })
+    .join('\n')
+    .value();
+  $(`#${(selectId) ? selectId : attribute}`).html('<option value="">All</option>\n' + options)
+}
+
+function animate(event) {
+  var vectorContext = event.vectorContext;
+  var frameState = event.frameState;
+  var elapsedTime = frameState.time - animationStartTime;
+
+  // if (elapsedTime % 5 === 0) {
+    _.chain(recruitSource.getFeatures())
+      .filter((feature) => feature.get('visible'))
+      .each((feature, index) => {
+        var migrationLine = feature.get('migration');
+        // var college = feature.get('college');
+        if (migrationLine ) {
+          var segment = feature.get('migrationSegment');
+
+          // if (elapsedTime % 10 === index % 10 || !segment) {
+          // if (elapsedTime % 10 === 0 || !segment) {
+            segment = createSegment(migrationLine, feature);
+            feature.set('migrationSegment', segment.transform('EPSG:4326', 'EPSG:3857'));
+          // }
+
+          vectorContext.setStyle(new ol.style.Style({
+            stroke: new ol.style.Stroke({
+              color: [0, 0, 0, .75],
+              width: 2.5
+            })
+          }));
+          vectorContext.drawGeometry(segment);
+        }
+      })
+      .value();
+
+    map.render();
+  // }
+}
+
+// Create the animated segment at this current point in time.
+function createSegment(migrationLine, feature) {
+  var end = feature.get('migrationSegmentEnd');
+
+  // set the next end
+  var length = feature.get('migrationLength');
+  feature.set('migrationSegmentEnd', ((end + segmentLength) % length));
+
+  var start = Math.max(0, end - segmentLength);
+  var segment = turf.lineSliceAlong(migrationLine, start, end);
+  var turfLine = segment.geometry;
+  var geometry = geojson.readGeometry(turfLine);
+  return geometry;
+}
+
+
+function updateFilter() {
+  // Filter back on the right side controls.
+  const visibleRecruits = _.chain(recruitSource.getFeatures())
+    .each((feature) => {
+      feature.set('visible', false);
+    })
+    .filter((feature) => {
+      return check(feature, 'hometown') && check(feature, 'homestate') && check(feature, 'position') &&
+        checkRange(feature, 'rank_primary') && checkRange(feature, 'rating_score') && checkRange(feature, 'weight') &&
+        checkRange(feature, 'distance') && check(feature, 'college') && check(feature, 'college_conference');
+    })
+    .each((feature) => {
+      feature.set('visible', true);
+    })
+    .value();
+
+  // Update the count of recruits on the screen.
+  $('#numberOfRecruits').text(visibleRecruits.length);
+
+  // Update the group by list.
+  updateList(visibleRecruits);
+}
+
+function updateList(features) {
+  // Update the group by list
+  const groupByProperty = $('#group-by').val();
+  const newList = _.chain(features)
+    .groupBy((feature) => {
+      return feature.get(groupByProperty);
+    })
+    // Ordering on the groupBy object is being weird.
+    .toPairs()
+    .each((array) => {
+      // Compute the mean of the rank so we can sort by it and display it
+      const mean = _.round(_.meanBy(array[1], (feature) => feature.get('rank_primary')), 0);
+      array[2] = mean;
+    })
+    .orderBy([(array) => {
+      // Pairs are [property, group], order by the group size
+      return array[1].length;
+    }, '2'], ['desc', 'asc'])
+    .map((array) => {
+      const property = array[0];
+      const group = array[1];
+      const mean = array[2];
+      return `<tr><td class="col-xs-3">${property}</td><td class="col-xs-1">${group.length}</td><td class="col-xs-1">${mean}</td></tr>`;
+    })
+    .join('\n')
+    .value();
+  $(`#group-by-table tbody`).html(newList);
+}
+
+$('.group-by').change(() => {
+  const features = _.chain(recruitSource.getFeatures())
+    .filter((feature) => {
+      return feature.get('visible');
+    })
+    .value();
+  return updateList(features);
+});
+
+function check(feature, attribute) {
+  var selected = $(`#${attribute}`).val();
+
+  return _.isEmpty(selected) || feature.get(attribute) === selected;
+}
+
+function checkRange(feature, attribute) {
+  var range = $(`#${attribute}`);
+
+  return (feature.get(attribute) >= range.slider("values", 0) && feature.get(attribute) <= range.slider("values", 1)) ||
+    ($(`#${attribute}-include`).prop('checked') && _.isNil(feature.get(attribute)));
+}
+
+// bind the handler for all of the env controls
+$('.env-control').change(updateFilter);
+
+$(function() {
+  initializeRange('rank_primary', 0, 5000, 1);
+  initializeRange('rating_score', 0.5, 1, .01);
+  initializeRange('weight', 0, 500, 1, ' lbs.');
+  initializeRange('distance', 0, 8000, 10, ' miles');
+  initializeAmount('rank_primary');
+  initializeAmount('rating_score');
+  initializeAmount('weight', ' lbs.');
+  initializeAmount('distance', ' miles');
+});
+
+function initializeRange(attribute, min, max, step, unit) {
+  $(`#${attribute}`).slider({
+    range: true,
+    min: min,
+    max: max,
+    step: step,
+    values: [ min, max ],
+    slide: function( event, ui ) {
+      const unitText = (unit) ? unit : '';
+      $(`#${attribute}-amount`).text(ui.values[0] + " - " + ui.values[1] + unitText);
+    },
+    stop: updateFilter
+  });
+}
+
+function initializeAmount(attribute, unit) {
+  const unitText = (unit) ? unit : '';
+  $(`#${attribute}-amount`).text($(`#${attribute}`).slider("values", 0) + " - " + $(`#${attribute}`).slider("values", 1) + unitText);
+}
+</script>
+</body>
+</html>
