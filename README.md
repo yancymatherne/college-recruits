@@ -7,15 +7,14 @@ https://boundlessgeo-yancy.github.io/college-recruits/
 This project consists of two scripts written in NodeJS for scraping / loading the data and one static html file for visualization.
 
 ## Tech Stack
+I did this for a map competition so, because of time constraints, I was limiting variables when choosing the tech stack.
 * Scripts: Node.js, Turf.js, JQuery
 * Map: OpenLayers, Turf.js, Bootstrap, JQuery
 
 ## Data Sources
-The recruit data is scraped from https://247sports.com
-
-The D1 Football Colleges from 2007 comes from https://www.sciencebase.gov/catalog/item/4f4e477ee4b07f02db480f76
-
-Mapquest for geocoding.
+* The recruit data is scraped from https://247sports.com
+* The D1 Football Colleges from 2007 comes from https://www.sciencebase.gov/catalog/item/4f4e477ee4b07f02db480f76
+* Mapquest for geocoding.
 
 ## Running
 ### Build the college GeoJSON
