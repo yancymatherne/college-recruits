@@ -2,7 +2,7 @@
 
 A quick little hobby project to visualize college football recruits, where they are from, where they go, how far they travel, and more.
 
-https://boundlessgeo-yancy.github.io/college-recruits/
+https://yancymatherne.github.io/college-recruits/
 
 This project consists of two scripts written in NodeJS for scraping / loading the data and one static html file for visualization.
 
